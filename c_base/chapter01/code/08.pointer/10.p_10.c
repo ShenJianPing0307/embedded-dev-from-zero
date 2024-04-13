@@ -14,8 +14,8 @@ int main(int argc, char *argv[]) {
 
     printf("%d %d\n", row, col);
 
-    printf("%p %p %p\n",&a[0], a[0], &a[0][0]); // a[0]存放的内容就是 a[0][0] 的地址, 所以下面就是 *(*(p+i)+j)
-    printf("%p %p %p\n",&a[1], a[1], &a[1][0]);
+    printf("%p %p %p %p\n",&a[0], a[0], *p, &a[0][0]); // a[0]存放的内容就是 a[0][0] 的地址, 所以下面就是 *(*(p+i)+j)
+    printf("%p %p %p %p\n",&a[1], a[1], *(p + 1), &a[1][0]);
 
     for (i = 0; i < row; i++) {
 
