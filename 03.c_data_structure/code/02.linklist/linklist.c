@@ -105,6 +105,37 @@ int list_insert(linklist H, data_t value, int pos) {
 
 }
 
+int list_delete(linklist H, int pos) {
+    linklist p, q;
+
+    // 1、judgde H
+    if (H == NULL) {
+        printf("H is NULL\n");
+        return -1;
+    }
+
+    // 2、locate pos-1
+    p = list_get(H, pos-1);
+    if (p == NULL)
+        return -1
+    if (p->next == NULL) {
+        printf("delete pos is invalid\n");
+        return -1;
+    }
+
+    // 3、update list
+    q = p->next;
+    p->next = q->next;
+
+    // 4、free
+    printf("free:%d\n", q->data);
+    free(q);
+    q = NULL;
+
+    return 0;
+
+}
+
 int list_show(linklist H) {
     linklist p;
 
@@ -122,5 +153,27 @@ int list_show(linklist H) {
     puts("");
 
     return 0;
+
+}
+
+linklist list_free(linklist H) {
+    linklist p;
+
+    if (H == NULL) {
+        return NULL;
+    }
+
+    p = H;
+
+    printf("free:");
+    while (H != NULL) {
+        p = H;
+        printf("%d ", p->data);
+        free(p);
+        H = H->next;
+    }
+    puts("");
+
+    return NULL;
 
 }
