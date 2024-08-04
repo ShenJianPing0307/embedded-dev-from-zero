@@ -177,3 +177,64 @@ linklist list_free(linklist H) {
     return NULL;
 
 }
+
+int list_reverse(linklist H) {
+    linklist p, q;
+
+    if (H == NULL) {
+        printf("H is NULL\n");
+        return -1;
+    }
+
+    if (H->next == NULL || H->next->next == NULL) {
+        return 0;
+    }
+
+    p = H->next->next;
+    H->next->next = NULL;
+
+    while (p != NULL) {
+        q = p;
+        p = p->next;
+
+        q->next = H->next;
+        H->next = q;
+    }
+
+    return 0;
+
+}
+
+linklist list_adjmax(linklist H, data_t *value) {
+    linklist p, q, r;
+    data_t sum;
+
+    if (H == NULL) {
+        printf("H is NULL\n");
+        return NULL;
+    }
+
+    if (H->next == NULL || H->next->next == NULL || H->next-next->next == NULL) {
+        return H;
+    }
+
+    q = H->next;
+    p = H->next->next; // p = q->next;
+    r = q;
+    sum = q->data + p->data;
+
+    while (p->next != NULL) {
+        p = p->next;
+        q = q->next;
+
+        if (sum < q->data + p->data) {
+            sum = q->data + p->data;
+            r = q;
+        }
+    }
+
+    *value = sum;
+
+    return r;
+
+}
