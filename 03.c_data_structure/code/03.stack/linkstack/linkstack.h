@@ -3,7 +3,7 @@ typedef int data_t;
 typedef struct node {
     data_t data;
     struct node * next;
-}listnode, *linkstack
+}listnode, *linkstack;
 
 linkstack stack_create();
 int stack_push(linkstack s, data_t value);
