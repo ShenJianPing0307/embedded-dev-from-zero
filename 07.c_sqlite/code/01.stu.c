@@ -80,14 +80,61 @@ int do_update(sqlite3 *db) {
     return 0;
 }
 
-int do_query(sqlite3 *db) {
+int callback(void *arg, int f_num, char ** f_value, char ** f_name) {
 
-    char *errmsg;
-    char sql[N] = "";
+    int i =0;
 
+    for(i=0; i<f_num; i++ ) {
+        printf("%-8s", f_value[i]);
+    }
+    printf("++++++++++++++++++");
+    putchar(10);
     return 0;
 }
 
+int do_query(sqlite3 *db) {
+
+    char *errmsg;
+    char sql[N] = "select count(*) from stu where name='zhangsan';";
+    if(sqlite3_exec(db, sql, callback, NULL, &errmsg) != SQLITE_OK) {
+        printf("%s", errmsg);
+    } else {
+        printf("select done.\n");
+    }
+    return 0;
+}
+
+int do_query1(sqlite3 *db) {
+
+    char *errmsg;
+    char ** resultp;
+    int nrow;
+    int ncolumn;
+
+    if(sqlite3_get_table(db, "select * from stu", &resultp, &nrow, &ncolumn, &errmsg) != SQLITE_OK) {
+        printf("%s\n", errmsg);
+        return -1;
+    } else {
+        printf("query done.\n");
+    }
+
+    int i = 0;
+    int j = 0;
+    int index = ncolumn;
+
+    for(j = 0; j < ncolumn; j++) {
+        printf("%-10s", resultp[j]);
+    }
+    putchar(10);
+
+    for(i = 0; i < nrow; i++) {
+        for(j = 0; j < ncolumn; j++) {
+            printf("%-10s", resultp[index++]);
+        }
+        putchar(10);
+    }
+    return 0;
+}
 
 
 //  gcc -o 01.stu 01.stu.c -lsqlite3
@@ -129,7 +176,7 @@ int main(int argc, const char *argv[]) {
                 do_delete(db);
                 break;
             case 3:
-                do_query(db);
+                do_query1(db);
                 break;
             case 4:
                 do_update(db);
