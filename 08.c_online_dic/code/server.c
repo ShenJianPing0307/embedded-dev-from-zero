@@ -29,6 +29,9 @@ typedef struct {
 
 int do_client(int acceptfd, sqlite3 *db);
 int do_register(int acceptfd, MSG *msg, sqlite3 *db);
+int do_login(int acceptfd, MSG *msg, sqlite3 *db);
+int do_query(int acceptfd, MSG *msg, sqlite3 *db);
+int do_history(int acceptfd, MSG *msg, sqlite3 *db);
 
 // ./server 192.168.1.244 33201
 int main(int argc, const char *argv[]) {
@@ -119,14 +122,67 @@ int do_client(int acceptfd, sqlite3 *db) {
             case R:
                 do_register(acceptfd, &msg, db);
                 break;
+            case L:
+                do_login(acceptfd, &msg, db);
+                break;
+            case Q:
+                do_query(acceptfd, &msg, db);
+                break;
+            case H:
+                do_history(acceptfd, &msg, db);
+                break;
             default:
                 printf("Invalid data msg.\n");
         }
     }
     printf("client exit.\n");
     close(acceptfd);
+    return 0;
+}
+
+int do_history(int acceptfd, MSG *msg, sqlite3 *db) {
 
     return 0;
+}
+
+int do_query(int acceptfd, MSG *msg, sqlite3 *db) {
+
+    return 0;
+}
+
+int do_login(int acceptfd, MSG *msg, sqlite3 *db){
+
+    char sql[128] = {};
+    char *errmsg;
+    int nrow;
+    int ncoloumn;
+    char **resultp;
+
+    sprintf(sql, "select * from usr where name='%s' and paas='%s';", msg->name, msg->data);
+    printf("%s\n", sql);
+
+    if(sqlite3_get_table(db, sql, &resultp, &nrow, &ncoloumn, &errmsg) != SQLITE_OK) {
+        printf("%s\n", errmsg);
+        return -1;
+
+    } else {
+        printf("get table ok\n");
+    }
+    // 查询成功，数据库中拥有此用户
+    if(nrow == 1) {
+        strcpy(msg->data, "ok");
+        send(acceptfd, msg, sizeof(MSG), 0);
+        return 1;
+    }
+
+    // 密码或用户名错误
+    if(nrow == 0) {
+        strcpy(msg->data, "usr/pass wrong.");
+        send(acceptfd, msg, sizeof(MSG), 0);
+    }
+
+    return 0;
+
 }
 
 int do_register(int acceptfd, MSG *msg, sqlite3 *db) {
