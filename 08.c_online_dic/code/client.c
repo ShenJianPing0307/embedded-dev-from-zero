@@ -192,6 +192,7 @@ next:
                 break;
             case 3:
                 close(sockfd);
+                exit(0);
                 break;
             default:
                 printf("Invalid data cmd.\n");

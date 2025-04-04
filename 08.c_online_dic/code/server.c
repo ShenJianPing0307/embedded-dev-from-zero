@@ -32,6 +32,9 @@ int do_register(int acceptfd, MSG *msg, sqlite3 *db);
 int do_login(int acceptfd, MSG *msg, sqlite3 *db);
 int do_query(int acceptfd, MSG *msg, sqlite3 *db);
 int do_history(int acceptfd, MSG *msg, sqlite3 *db);
+int history_callback(void* arg,int f_num,char** f_value,char** f_name);
+int do_search(int acceptfd, MSG *msg, char word[]);
+int get_date(char *date);
 
 // ./server 192.168.1.244 33201
 int main(int argc, const char *argv[]) {
@@ -140,12 +143,146 @@ int do_client(int acceptfd, sqlite3 *db) {
     return 0;
 }
 
-int do_history(int acceptfd, MSG *msg, sqlite3 *db) {
+int history_callback(void* arg, int f_num, char** f_value, char** f_name) {
+    // record name date word
+    int acceptfd;
+    MSG msg;
+
+    acceptfd = *((int *)arg);
+    sprintf(msg.data, "%s, %s", f_value[1], f_value[2]);
+
+    send(acceptfd, &msg, sizeof(MSG), 0);
 
     return 0;
 }
 
+int do_history(int acceptfd, MSG *msg, sqlite3 *db) {
+    char sql[128] = {};
+    char *errmsg;
+
+    sprintf(sql, "select * from record where name = '%s'", msg->name);
+
+    //查询数据库
+    if(sqlite3_exec(db, sql, history_callback, (void *)&acceptfd, &errmsg) != SQLITE_OK) {
+        printf("%s\n", errmsg);
+    } else {
+        printf("Query record done.\n");
+    }
+
+    //所有的记录查询发送完毕之后 给客户端发送结束消息
+    msg->data[0] = '\0';
+    send(acceptfd, msg, sizeof(MSG), 0);
+
+    return 0;
+}
+
+int do_search(int acceptfd, MSG *msg, char word[]) {
+
+    FILE * fp;
+    int len = 0;
+    char temp[512] = {};
+    int result;
+    char *p;
+
+    //打开文件 读取文件 进行对比
+    if((fp = fopen("dict.txt", "r")) == NULL) {
+        perror("fail to open.\n");
+        strcpy(msg->data, "Failed to open dict.txt");
+        send(acceptfd, msg, sizeof(MSG), 0);
+        return -1;
+    }
+
+    //打印出客户端要查询的单词
+    len = strlen(word);
+    printf("%s, len=%d\n", word, len);
+
+    //读文件 查询单词
+    while(fgets(temp, 512, fp) != NULL) {
+        printf("temp=%s\n", temp)
+        result = strncmp(temp, word, len);
+
+        if(result < 0) {
+            continue;
+        }
+
+        if(result > 0 || ((result == 0) && (temp[len] != ' '))) {
+            break;
+        }
+
+        // 表示找到了要查询的单词
+        p = temp + len;
+        printf("found word: %s\n", p);
+        while(*p == ' ') {
+            p++;
+        }
+
+        // 找到了注释 跳过所有的空格
+        strcpy(msg->data, p);
+        printf("found word:%s\n", msg->data);
+
+        // 注释拷贝完毕后 关闭所有文件
+        fclose(fp);
+
+        return 1;
+
+    }
+    fclose(fp);
+    return 0;
+
+}
+
+int get_date(char *date) {
+
+    time_t t;
+    struct tm *tp;
+
+    time(&t);
+
+    // 进行时间格式转换
+    tp = localtime(&t);
+
+    sprintf(date, "%d-%d-%d %d:%d:%d", tp->tm_year + 1900, tp->tm_mon+1, tp->tm_mday,
+                tp->tm_hour, tp->tm_min, tp->tm_sec);
+
+    printf("get date: %s\n", date);
+
+    return 0;
+
+}
+
 int do_query(int acceptfd, MSG *msg, sqlite3 *db) {
+
+    char word[64];
+    int found = 0;
+    char date[128] = {};
+    char sql[128] = {};
+    char *errmsg;
+
+    //拿出msg结构体中要查询的单词
+    strcpy(word, msg->data);
+
+    found = do_search(acceptfd, msg, word);
+    printf("查询单词完毕.\n");
+
+    if(found == 1) {
+        // 需要获取系统时间
+        get_date(date);
+        sprintf(sql, "insert into record values('%s', '%s', '%s')", msg->name, date, word);
+
+        if(sqlite3_exec(db, sql, NULL, NULL, &errmsg) != SQLITE_OK) {
+
+            printf("%s\n", errmsg);
+            return -1;
+
+        } else {
+            printf("Insert record done.\n");
+        }
+    } else {
+        // 表示未找到
+        strcpy(msg->data, "Not Found!");
+    }
+        // 将查询的结果 发送给客户端
+        send(acceptfd, msg, sizeof(MSG), 0);
 
     return 0;
 }
